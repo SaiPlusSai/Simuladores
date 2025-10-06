@@ -18,9 +18,7 @@ export default function MainMenu({ setPage }) {
         <button style={styles.btn} onClick={() => setPage("azucar")}>
   Inventario de Azúcar (Ej. 5)
 </button>
-        <button style={{...styles.btn, opacity: 0.5, cursor: "not-allowed"}} disabled>
-          Próximo módulo
-        </button>
+        
         <button style={styles.btn} onClick={() => setPage("plazo")}>
   Plazo Fijo (Ej. 6)
 </button>
