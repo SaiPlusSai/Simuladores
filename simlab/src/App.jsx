@@ -5,6 +5,7 @@ import JuegoDados from "./pages/JuegoDados";          // Ej.2
 import VentasSim from "./pages/VentasSim";
 import HuevosPollos from "./pages/HuevosPollos";            // Ej.3 NUEVO
 import InventarioAzucar from "./pages/InventarioAzucar";
+import PlazoFijo from "./pages/PlazoFijo";
 export default function App() {
   const [page, setPage] = useState("menu");
 
@@ -15,6 +16,7 @@ export default function App() {
       case "ventas":      return <VentasSim goBack={() => setPage("menu")} />;
       case "huevos": return <HuevosPollos goBack={() => setPage("menu")} />;
       case "azucar": return <InventarioAzucar goBack={() => setPage("menu")} />;
+      case "plazo": return <PlazoFijo goBack={() => setPage("menu")} />;
       default:            return <MainMenu setPage={setPage} />;
     }
   }
