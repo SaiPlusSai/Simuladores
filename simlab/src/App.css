@@ -1,42 +1,83 @@
 #root {
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 100vh; /* ocupa toda la altura */
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ===== Header y Footer ===== */
+header {
+  margin-bottom: 2rem;
+  animation: fade-in 0.6s ease;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+footer {
+  margin-top: auto;
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: #aaa;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  max-width: 900px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
+/* ===== Tarjetas ===== */
 .card {
-  padding: 2em;
+  background: var(--card-bg);
+  padding: 1.8rem 2.2rem;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  margin: 1rem 0;
+  width: 100%;
+  max-width: 850px;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.card h2 {
+  margin-bottom: 1rem;
+  font-size: 1.6rem;
+  color: var(--primary);
 }
 
 .read-the-docs {
   color: #888;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+/* ===== Animación de entrada ===== */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card, button {
+  animation: fade-in 0.5s ease;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .card {
+    padding: 1.2rem 1.4rem;
+  }
+  .card h2 {
+    font-size: 1.3rem;
+  }
 }
