@@ -48,20 +48,31 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "20px",
     width: "100%",
-    maxWidth: "800px",
+    maxWidth: "900px",
+    justifyItems: "center", // 👈 centra cada botón en su celda
   },
   btn: {
     padding: "18px 25px",
     fontSize: "1rem",
     border: "none",
-    borderRadius: "10px",
-    background: "#2d2d2d",
+    borderRadius: "12px",
+    background: "linear-gradient(145deg, #2d2d2d, #3a3a3a)",
     color: "#eee",
     cursor: "pointer",
     transition: "all 0.3s ease",
-    fontWeight: "500",
-    boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+    fontWeight: "600",
+    width: "100%", // 👈 se estira dentro de su celda
+    maxWidth: "260px", // 👈 límite para que no se vea gigante
+    textAlign: "center",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
   },
 };
 
-// hover con JS: puedes meterlo en el mismo botón con onMouseEnter/onMouseLeave
+// efecto hover con JS
+Object.assign(styles.btn, {
+  ":hover": {
+    background: "linear-gradient(145deg, #444, #555)",
+    transform: "translateY(-2px)",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.5)",
+  },
+});
