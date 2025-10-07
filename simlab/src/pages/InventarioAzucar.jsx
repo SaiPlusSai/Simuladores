@@ -1,5 +1,29 @@
 import { useState } from "react";
 
+// Generador congruencial lineal (LCG)
+function lcg(seed) {
+  let m = 2 ** 31 - 1;
+  let a = 48271;
+  let c = 0;
+  let state = seed;
+
+  return () => {
+    state = (a * state + c) % m;
+    return state / m;
+  };
+}
+
+// Demanda diaria ~ Exponencial(λ=0.01)
+function demandaDia(rand) {
+  const U = rand();
+  return Math.round(-100 * Math.log(1 - U));
+}
+
+// Random entero [a, b]
+function randint(a, b, rand) {
+  return Math.floor(rand() * (b - a + 1)) + a;
+}
+
 export default function InventarioAzucar({ goBack }) {
   const [CBOD, setCBOD] = useState(700); // capacidad bodega
   const [CORD, setCORD] = useState(100); // costo orden
@@ -9,25 +33,23 @@ export default function InventarioAzucar({ goBack }) {
   const [NSIM, setNSIM] = useState(1);   // simulaciones
   const [NMD, setNMD] = useState(30);    // días
 
-  const [mostrarLog, setMostrarLog] = useState(false);
-  const [tabla, setTabla] = useState([]);
-  const [out, setOut] = useState(null);
-
-  function demandaDia() {
-    const U = Math.random();
-    return Math.round(-100 * Math.log(1 - U));
-  }
-
-  function randint(a, b) {
-    return Math.floor(Math.random() * (b - a + 1)) + a;
-  }
+  const [resultados, setResultados] = useState(null);
 
   function simular() {
-    let registros = [];
+    if (CBOD < 0 || CORD < 0 || CUI < 0 || CUA < 0 || PVU < 0 || NMD <= 0 || NSIM <= 0) {
+      alert("⚠️ Los parámetros deben ser no negativos y días/simulaciones mayores a 0.");
+      return;
+    }
+
+    let sims = [];
     let accGNT = 0, accCT = 0, accDIT = 0, accIBR = 0;
 
     for (let sim = 1; sim <= NSIM; sim++) {
-      let CD = 0, IAZU = CBOD, DIT = 0, CDI = 0, CTA = 0, CTO = 0, IBR = 0, TENT = 0;
+      let seed = Date.now() + sim * 1234;
+      let rand = lcg(seed);
+
+      let IAZU = CBOD, DIT = 0, CDI = 0, CTA = 0, CTO = 0, IBR = 0, TENT = 0;
+      let registros = [];
 
       for (let dia = 1; dia <= NMD; dia++) {
         if (TENT > 0) {
@@ -40,11 +62,11 @@ export default function InventarioAzucar({ goBack }) {
         }
 
         if (dia % 7 === 0 && TENT === 0) {
-          TENT = randint(1, 3);
+          TENT = randint(1, 3, rand);
           CTO += CORD;
         }
 
-        const DAZU = demandaDia();
+        const DAZU = demandaDia(rand);
         if (DAZU > IAZU) {
           DIT += (DAZU - IAZU);
           IBR += IAZU * PVU;
@@ -56,33 +78,44 @@ export default function InventarioAzucar({ goBack }) {
 
         CDI += IAZU * CUI;
 
-        registros.push({
-          sim,
-          dia,
-          inventario: IAZU,
-          demanda: DAZU,
-          ingresos: IBR.toFixed(2),
-          costoInv: CDI.toFixed(2),
-          costoAlm: CTA.toFixed(2),
-          costoOrd: CTO.toFixed(2),
-        });
+        if (NSIM === 1) {
+          registros.push({
+            dia,
+            inventario: IAZU,
+            demanda: DAZU,
+            ingresos: IBR.toFixed(2),
+            costoInv: CDI.toFixed(2),
+            costoAlm: CTA.toFixed(2),
+            costoOrd: CTO.toFixed(2),
+          });
+        }
       }
 
       const CT = CDI + CTA + CTO;
       const GNT = IBR - CT;
 
+      sims.push({
+        sim,
+        seed,
+        GNT,
+        CT,
+        DIT,
+        IBR,
+        registros
+      });
+
       accGNT += GNT; accCT += CT; accDIT += DIT; accIBR += IBR;
     }
 
-    setTabla(registros);
-    setOut({
-      totales: { GNT: accGNT, CT: accCT, DIT: accDIT, IBR: accIBR },
+    setResultados({
+      sims,
       promedios: {
         GNT: accGNT / NSIM,
         CT: accCT / NSIM,
         DIT: accDIT / NSIM,
         IBR: accIBR / NSIM,
       },
+      totales: { GNT: accGNT, CT: accCT, DIT: accDIT, IBR: accIBR }
     });
   }
 
@@ -95,11 +128,11 @@ export default function InventarioAzucar({ goBack }) {
       <p style={styles.description}>Modelo con reabastecimiento semanal y demanda aleatoria.</p>
 
       <div style={{ ...row, margin: "12px 0" }}>
-        <label>CBOD: <input type="number" value={CBOD} onChange={(e) => setCBOD(+e.target.value)} style={input} /></label>
-        <label>CORD: <input type="number" value={CORD} onChange={(e) => setCORD(+e.target.value)} style={input} /></label>
-        <label>CUI: <input type="number" step="0.01" value={CUI} onChange={(e) => setCUI(+e.target.value)} style={input} /></label>
-        <label>CUA: <input type="number" step="0.01" value={CUA} onChange={(e) => setCUA(+e.target.value)} style={input} /></label>
-        <label>PVU: <input type="number" value={PVU} onChange={(e) => setPVU(+e.target.value)} style={input} /></label>
+        <label>CBOD: <input type="number" min={0} value={CBOD} onChange={(e) => setCBOD(+e.target.value)} style={input} /></label>
+        <label>CORD: <input type="number" min={0} value={CORD} onChange={(e) => setCORD(+e.target.value)} style={input} /></label>
+        <label>CUI: <input type="number" step="0.01" min={0} value={CUI} onChange={(e) => setCUI(+e.target.value)} style={input} /></label>
+        <label>CUA: <input type="number" step="0.01" min={0} value={CUA} onChange={(e) => setCUA(+e.target.value)} style={input} /></label>
+        <label>PVU: <input type="number" min={0} value={PVU} onChange={(e) => setPVU(+e.target.value)} style={input} /></label>
         <label>NSIM: <input type="number" min={1} value={NSIM} onChange={(e) => setNSIM(+e.target.value)} style={input} /></label>
         <label>NMD: <input type="number" min={1} value={NMD} onChange={(e) => setNMD(+e.target.value)} style={input} /></label>
       </div>
@@ -107,62 +140,85 @@ export default function InventarioAzucar({ goBack }) {
       <div style={styles.actions}>
         <button onClick={simular} style={styles.btnPrimary}>▶ Simular</button>
         <button onClick={goBack} style={styles.btnSecondary}>⬅ Volver</button>
-        <label style={styles.checkbox}>
-          <input type="checkbox" checked={mostrarLog} onChange={(e) => setMostrarLog(e.target.checked)} />
-          Mostrar log
-        </label>
       </div>
 
-      {/* Resumen primero */}
-      {out && (
-        <div style={styles.resultCard}>
-          <h3 style={styles.subtitle}>📊 Resumen</h3>
-          <p><b>Ganancia neta:</b> {out.totales.GNT.toFixed(2)} Bs</p>
-          <p><b>Costo total:</b> {out.totales.CT.toFixed(2)} Bs</p>
-          <p><b>Demanda insatisfecha:</b> {out.totales.DIT}</p>
-          <p><b>Ingresos brutos:</b> {out.totales.IBR.toFixed(2)} Bs</p>
-          {NSIM > 1 && (
-            <div style={{ marginTop: 10 }}>
-              <h4>Promedios</h4>
-              <p>GNT: {out.promedios.GNT.toFixed(2)} · CT: {out.promedios.CT.toFixed(2)} · DIT: {out.promedios.DIT.toFixed(2)} · IBR: {out.promedios.IBR.toFixed(2)}</p>
+      {resultados && (
+        <>
+          {NSIM === 1 ? (
+            <div>
+              <h3 style={styles.subtitle}>📑 Detalle (Semilla: {resultados.sims[0].seed})</h3>
+              <p><b>Ganancia neta:</b> {resultados.sims[0].GNT.toFixed(2)} Bs</p>
+              <p><b>Costo total:</b> {resultados.sims[0].CT.toFixed(2)} Bs</p>
+              <p><b>Demanda insatisfecha:</b> {resultados.sims[0].DIT}</p>
+              <p><b>Ingresos brutos:</b> {resultados.sims[0].IBR.toFixed(2)} Bs</p>
+
+              <div style={styles.tableWrapper}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Día</th>
+                      <th>Inventario</th>
+                      <th>Demanda</th>
+                      <th>Ingresos</th>
+                      <th>Cost.Inv</th>
+                      <th>Cost.Alm</th>
+                      <th>Cost.Ord</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resultados.sims[0].registros.map((row, i) => (
+                      <tr key={i}>
+                        <td>{row.dia}</td>
+                        <td>{row.inventario}</td>
+                        <td>{row.demanda}</td>
+                        <td>{row.ingresos}</td>
+                        <td>{row.costoInv}</td>
+                        <td>{row.costoAlm}</td>
+                        <td>{row.costoOrd}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div style={styles.tableWrapper}>
+              <h3 style={styles.subtitle}>📊 Resumen de simulaciones</h3>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Sim</th>
+                    <th>Semilla</th>
+                    <th>Ganancia Neta</th>
+                    <th>Costo Total</th>
+                    <th>Demanda Insatisfecha</th>
+                    <th>Ingresos Brutos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultados.sims.map((s) => (
+                    <tr key={s.sim}>
+                      <td>{s.sim}</td>
+                      <td>{s.seed}</td>
+                      <td>{s.GNT.toFixed(2)}</td>
+                      <td>{s.CT.toFixed(2)}</td>
+                      <td>{s.DIT}</td>
+                      <td>{s.IBR.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Tabla de iteraciones */}
-      {tabla.length > 0 && (
-        <div style={styles.tableWrapper}>
-          <h3 style={styles.subtitle}>📑 Detalle diario</h3>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th>Sim</th>
-                <th>Día</th>
-                <th>Inventario</th>
-                <th>Demanda</th>
-                <th>Ingresos</th>
-                <th>Cost.Inv</th>
-                <th>Cost.Alm</th>
-                <th>Cost.Ord</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tabla.map((row, i) => (
-                <tr key={i}>
-                  <td>{row.sim}</td>
-                  <td>{row.dia}</td>
-                  <td>{row.inventario}</td>
-                  <td>{row.demanda}</td>
-                  <td>{row.ingresos}</td>
-                  <td>{row.costoInv}</td>
-                  <td>{row.costoAlm}</td>
-                  <td>{row.costoOrd}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <div style={styles.resultCard}>
+            <h3 style={styles.subtitle}>📈 Promedios (NSIM = {NSIM})</h3>
+            <p>Ganancia neta promedio: <b>{resultados.promedios.GNT.toFixed(2)} Bs</b></p>
+            <p>Costo total promedio: <b>{resultados.promedios.CT.toFixed(2)} Bs</b></p>
+            <p>Demanda insatisfecha promedio: <b>{resultados.promedios.DIT.toFixed(2)}</b></p>
+            <p>Ingresos brutos promedio: <b>{resultados.promedios.IBR.toFixed(2)} Bs</b></p>
+          </div>
+        </>
       )}
     </div>
   );
@@ -175,9 +231,8 @@ const styles = {
   actions: { display: "flex", justifyContent: "center", gap: "15px", marginBottom: "20px", alignItems: "center" },
   btnPrimary: { padding: "12px 20px", fontSize: "1.1rem", border: "none", borderRadius: "10px", background: "#4caf50", color: "#fff", cursor: "pointer" },
   btnSecondary: { padding: "12px 20px", fontSize: "1.1rem", border: "none", borderRadius: "10px", background: "#f44336", color: "#fff", cursor: "pointer" },
-  checkbox: { display: "flex", alignItems: "center", gap: "6px", fontSize: "0.95rem" },
-  resultCard: { marginTop: "20px", padding: "20px", background: "#222", borderRadius: "10px", maxWidth: "600px", marginLeft: "auto", marginRight: "auto" },
-  subtitle: { fontSize: "1.4rem", marginBottom: "10px", color: "#87cefa" },
   tableWrapper: { marginTop: "20px", overflowX: "auto" },
   table: { width: "100%", maxWidth: "950px", margin: "0 auto", borderCollapse: "collapse", background: "#1c1c1c" },
+  resultCard: { marginTop: "20px", padding: "20px", background: "#222", borderRadius: "10px", maxWidth: "600px", marginLeft: "auto", marginRight: "auto" },
+  subtitle: { fontSize: "1.4rem", marginBottom: "10px", color: "#87cefa" },
 };
