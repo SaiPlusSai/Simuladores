@@ -2,62 +2,108 @@ import { useState } from "react";
 
 export default function OptimizacionMax({ goBack }) {
   const [nmax, setNmax] = useState(10);
-  const [resultado, setResultado] = useState(null);
-  const [tabla, setTabla] = useState([]);
+  const [nsim, setNsim] = useState(1); // número de simulaciones
+  const [resultados, setResultados] = useState(null);
+
+  // Generador congruencial lineal (LCG)
+  function lcg(seed) {
+    let m = 2 ** 31 - 1;
+    let a = 48271;
+    let c = 0;
+    let state = seed;
+
+    return () => {
+      state = (a * state + c) % m;
+      return state / m;
+    };
+  }
 
   const simular = () => {
-    let bestZ = -Infinity;
-    let bestX1 = 0,
-      bestX2 = 0,
-      bestX3 = 0;
-    let usadas = 0,
-      descartadas = 0;
-
-    let registros = [];
-
-    for (let i = 0; i < nmax; i++) {
-      const r1 = Math.random();
-      const r2 = Math.random();
-      const r3 = Math.random();
-
-      const x1c = 0 + (10 - 0) * r1; // U[0,10]
-      const x2c = Math.round(0 + (100 - 0) * r2); // U[0,100] entero
-
-      if (x1c + x2c >= 2) {
-        usadas++;
-        const x3c = 1 + (2 - 1) * r3; // U[1,2]
-        const zc = 2 * x1c + 3 * x2c - x3c;
-
-        if (zc > bestZ) {
-          bestZ = zc;
-          bestX1 = x1c;
-          bestX2 = x2c;
-          bestX3 = x3c;
-        }
-
-        registros.push({
-          iter: i + 1,
-          x1: x1c.toFixed(2),
-          x2: x2c,
-          x3: x3c.toFixed(2),
-          z: zc.toFixed(2),
-          estado: "Usada",
-        });
-      } else {
-        descartadas++;
-        registros.push({
-          iter: i + 1,
-          x1: x1c.toFixed(2),
-          x2: x2c,
-          x3: "—",
-          z: "—",
-          estado: "Descartada",
-        });
-      }
+    if (nmax <= 0 || nsim <= 0) {
+      alert("⚠️ Nmax y NSIM deben ser números positivos.");
+      return;
     }
 
-    setResultado({ bestZ, bestX1, bestX2, bestX3, usadas, descartadas });
-    setTabla(registros);
+    let sims = [];
+    let accBestZ = 0;
+    let accUsadas = 0;
+    let accDescartadas = 0;
+
+    for (let s = 1; s <= nsim; s++) {
+      let seed = Date.now() + s * 1000; // semilla diferente cada simulación
+      let rand = lcg(seed);
+
+      let bestZ = -Infinity;
+      let bestX1 = 0, bestX2 = 0, bestX3 = 0;
+      let usadas = 0, descartadas = 0;
+      let registros = [];
+
+      for (let i = 0; i < nmax; i++) {
+        const r1 = rand();
+        const r2 = rand();
+        const r3 = rand();
+
+        const x1c = 0 + (10 - 0) * r1; // U[0,10]
+        const x2c = Math.round(0 + (100 - 0) * r2); // U[0,100] entero
+
+        if (x1c + x2c >= 2) {
+          usadas++;
+          const x3c = 1 + (2 - 1) * r3; // U[1,2]
+          const zc = 2 * x1c + 3 * x2c - x3c;
+
+          if (zc > bestZ) {
+            bestZ = zc;
+            bestX1 = x1c;
+            bestX2 = x2c;
+            bestX3 = x3c;
+          }
+
+          registros.push({
+            iter: i + 1,
+            x1: x1c.toFixed(2),
+            x2: x2c,
+            x3: x3c.toFixed(2),
+            z: zc.toFixed(2),
+            estado: "Usada",
+          });
+        } else {
+          descartadas++;
+          registros.push({
+            iter: i + 1,
+            x1: x1c.toFixed(2),
+            x2: x2c,
+            x3: "—",
+            z: "—",
+            estado: "Descartada",
+          });
+        }
+      }
+
+      sims.push({
+        sim: s,
+        seed,
+        bestZ,
+        bestX1,
+        bestX2,
+        bestX3,
+        usadas,
+        descartadas,
+        registros,
+      });
+
+      accBestZ += bestZ === -Infinity ? 0 : bestZ;
+      accUsadas += usadas;
+      accDescartadas += descartadas;
+    }
+
+    setResultados({
+      sims,
+      promedios: {
+        bestZ: accBestZ / nsim,
+        usadas: accUsadas / nsim,
+        descartadas: accDescartadas / nsim,
+      },
+    });
   };
 
   return (
@@ -69,8 +115,19 @@ export default function OptimizacionMax({ goBack }) {
           Iteraciones (Nmax):{" "}
           <input
             type="number"
+            min="1"
             value={nmax}
             onChange={(e) => setNmax(Number(e.target.value))}
+            style={styles.input}
+          />
+        </label>
+        <label>
+          N° de simulaciones:{" "}
+          <input
+            type="number"
+            min="1"
+            value={nsim}
+            onChange={(e) => setNsim(Number(e.target.value))}
             style={styles.input}
           />
         </label>
@@ -84,68 +141,99 @@ export default function OptimizacionMax({ goBack }) {
         </div>
       </div>
 
-      {tabla.length > 0 && (
-        <div style={styles.tableWrapper}>
-          <h3 style={styles.subtitle}>Resultados de Iteraciones</h3>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th>Iter</th>
-                <th>X1</th>
-                <th>X2</th>
-                <th>X3</th>
-                <th>Z</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tabla.map((row, i) => (
-                <tr key={i}>
-                  <td>{row.iter}</td>
-                  <td>{row.x1}</td>
-                  <td>{row.x2}</td>
-                  <td>{row.x3}</td>
-                  <td>{row.z}</td>
-                  <td
-                    style={{
-                      color: row.estado === "Usada" ? "#4caf50" : "#f44336",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {row.estado}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {resultado && (
-        <div style={styles.result}>
-          <h3 style={styles.subtitle}>Resultado Óptimo</h3>
-          <p>
-            <strong>Z:</strong>{" "}
-            {resultado.bestZ === -Infinity ? "—" : resultado.bestZ.toFixed(2)}
-          </p>
-          {resultado.bestZ !== -Infinity && (
-            <>
-              <p>
-                <strong>X1:</strong> {resultado.bestX1.toFixed(2)}
-              </p>
-              <p>
-                <strong>X2:</strong> {resultado.bestX2}
-              </p>
-              <p>
-                <strong>X3:</strong> {resultado.bestX3.toFixed(2)}
-              </p>
-            </>
+      {resultados && (
+        <>
+          {nsim === 1 ? (
+            <div style={{ marginBottom: "40px" }}>
+              <h3 style={styles.subtitle}>
+                Detalle de la simulación (Semilla: {resultados.sims[0].seed})
+              </h3>
+              <div style={styles.tableWrapper}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Iter</th>
+                      <th>X1</th>
+                      <th>X2</th>
+                      <th>X3</th>
+                      <th>Z</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resultados.sims[0].registros.map((row, i) => (
+                      <tr key={i}>
+                        <td>{row.iter}</td>
+                        <td>{row.x1}</td>
+                        <td>{row.x2}</td>
+                        <td>{row.x3}</td>
+                        <td>{row.z}</td>
+                        <td
+                          style={{
+                            color:
+                              row.estado === "Usada" ? "#4caf50" : "#f44336",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {row.estado}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div style={styles.tableWrapper}>
+              <h3 style={styles.subtitle}>Resumen de simulaciones</h3>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Sim</th>
+                    <th>Semilla</th>
+                    <th>BestZ</th>
+                    <th>X1</th>
+                    <th>X2</th>
+                    <th>X3</th>
+                    <th>Usadas</th>
+                    <th>Descartadas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultados.sims.map((s) => (
+                    <tr key={s.sim}>
+                      <td>{s.sim}</td>
+                      <td>{s.seed}</td>
+                      <td>
+                        {s.bestZ === -Infinity ? "—" : s.bestZ.toFixed(2)}
+                      </td>
+                      <td>{s.bestX1.toFixed(2)}</td>
+                      <td>{s.bestX2}</td>
+                      <td>{s.bestX3.toFixed(2)}</td>
+                      <td>{s.usadas}</td>
+                      <td>{s.descartadas}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-          <p>
-            Iteraciones usadas: <b>{resultado.usadas}</b> · descartadas:{" "}
-            <b>{resultado.descartadas}</b>
-          </p>
-        </div>
+
+          <div style={styles.result}>
+            <h3 style={styles.subtitle}>📊 Promedios (NSIM = {nsim})</h3>
+            <p>
+              <b>BestZ promedio:</b> {resultados.promedios.bestZ.toFixed(2)}
+            </p>
+            <p>
+              <b>Iteraciones usadas promedio:</b>{" "}
+              {resultados.promedios.usadas.toFixed(2)}
+            </p>
+            <p>
+              <b>Iteraciones descartadas promedio:</b>{" "}
+              {resultados.promedios.descartadas.toFixed(2)}
+            </p>
+          </div>
+        </>
       )}
     </div>
   );
@@ -192,7 +280,6 @@ const styles = {
     color: "#fff",
     cursor: "pointer",
     margin: "10px 5px",
-    transition: "all 0.3s ease",
   },
   btnSecondary: {
     padding: "12px 20px",
@@ -203,10 +290,9 @@ const styles = {
     color: "#fff",
     cursor: "pointer",
     margin: "10px 5px",
-    transition: "all 0.3s ease",
   },
   tableWrapper: {
-    marginTop: "30px",
+    marginTop: "20px",
     overflowX: "auto",
   },
   table: {
@@ -215,8 +301,6 @@ const styles = {
     margin: "0 auto",
     borderCollapse: "collapse",
     background: "#1c1c1c",
-    borderRadius: "8px",
-    overflow: "hidden",
   },
   result: {
     marginTop: "30px",
