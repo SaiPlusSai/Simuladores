@@ -3,22 +3,52 @@ export default function MainMenu({ setPage }) {
     <main style={styles.main}>
       <h1 style={styles.title}>SimLab — Menú Principal</h1>
       <div style={styles.buttons}>
-        <button style={styles.btn} onClick={() => setPage("montecarlo")}>
+        <button
+          style={styles.btn}
+          onMouseEnter={(e) => (e.target.style = { ...styles.btn, ...styles.btnHover })}
+          onMouseLeave={(e) => (Object.assign(e.target.style, styles.btn))}
+          onClick={() => setPage("montecarlo")}
+        >
           Optimización Máxima (Ej. 1)
         </button>
-        <button style={styles.btn} onClick={() => setPage("dados")}>
+        <button
+          style={styles.btn}
+          onMouseEnter={(e) => (e.target.style = { ...styles.btn, ...styles.btnHover })}
+          onMouseLeave={(e) => (Object.assign(e.target.style, styles.btn))}
+          onClick={() => setPage("dados")}
+        >
           Juego de Dados (Ej. 2)
         </button>
-        <button style={styles.btn} onClick={() => setPage("ventas")}>
+        <button
+          style={styles.btn}
+          onMouseEnter={(e) => (e.target.style = { ...styles.btn, ...styles.btnHover })}
+          onMouseLeave={(e) => (Object.assign(e.target.style, styles.btn))}
+          onClick={() => setPage("ventas")}
+        >
           Sim. Ventas por Día (Ej. 3)
         </button>
-        <button style={styles.btn} onClick={() => setPage("huevos")}>
+        <button
+          style={styles.btn}
+          onMouseEnter={(e) => (e.target.style = { ...styles.btn, ...styles.btnHover })}
+          onMouseLeave={(e) => (Object.assign(e.target.style, styles.btn))}
+          onClick={() => setPage("huevos")}
+        >
           Sim. Huevos y Pollos (Ej. 4)
         </button>
-        <button style={styles.btn} onClick={() => setPage("azucar")}>
+        <button
+          style={styles.btn}
+          onMouseEnter={(e) => (e.target.style = { ...styles.btn, ...styles.btnHover })}
+          onMouseLeave={(e) => (Object.assign(e.target.style, styles.btn))}
+          onClick={() => setPage("azucar")}
+        >
           Inventario de Azúcar (Ej. 5)
         </button>
-        <button style={styles.btn} onClick={() => setPage("plazo")}>
+        <button
+          style={styles.btn}
+          onMouseEnter={(e) => (e.target.style = { ...styles.btn, ...styles.btnHover })}
+          onMouseLeave={(e) => (Object.assign(e.target.style, styles.btn))}
+          onClick={() => setPage("plazo")}
+        >
           Plazo Fijo (Ej. 6)
         </button>
       </div>
@@ -49,7 +79,7 @@ const styles = {
     gap: "20px",
     width: "100%",
     maxWidth: "900px",
-    justifyItems: "center", // 👈 centra cada botón en su celda
+    justifyItems: "center",
   },
   btn: {
     padding: "18px 25px",
@@ -59,20 +89,16 @@ const styles = {
     background: "linear-gradient(145deg, #2d2d2d, #3a3a3a)",
     color: "#eee",
     cursor: "pointer",
-    transition: "all 0.3s ease",
     fontWeight: "600",
-    width: "100%", // 👈 se estira dentro de su celda
-    maxWidth: "260px", // 👈 límite para que no se vea gigante
+    width: "100%",
+    maxWidth: "260px",
     textAlign: "center",
     boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+    transition: "all 0.3s ease",
+  },
+  btnHover: {
+    background: "linear-gradient(145deg, #444, #555)",
+    transform: "translateY(-3px)",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.55)",
   },
 };
-
-// efecto hover con JS
-Object.assign(styles.btn, {
-  ":hover": {
-    background: "linear-gradient(145deg, #444, #555)",
-    transform: "translateY(-2px)",
-    boxShadow: "0 6px 16px rgba(0,0,0,0.5)",
-  },
-});
