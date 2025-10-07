@@ -5,6 +5,7 @@ export default function HuevosPollos({ goBack }) {
   const [precioHuevo, setPrecioHuevo] = useState(1.5);
   const [precioPollo, setPrecioPollo] = useState(5.0);
 
+  const [tabla, setTabla] = useState([]);
   const [resultados, setResultados] = useState(null);
 
   function simular() {
@@ -12,10 +13,9 @@ export default function HuevosPollos({ goBack }) {
     let totalHuevosPermanecen = 0;
     let totalPollosSobreviven = 0;
     let gananciaTotal = 0;
+    let registros = [];
 
     for (let dia = 1; dia <= numeroMaximoDias; dia++) {
-      // Poisson con lambda=1 → aprox usando Math.random (no hay distribuciones directas nativas)
-      // estrategia: conteo de eventos con media 1 (aprox)
       let huevosDia = poissonRandom(1);
       let huevosRotos = 0;
       let huevosPerm = 0;
@@ -38,15 +38,26 @@ export default function HuevosPollos({ goBack }) {
         }
       }
 
+      const gananciaDia = huevosPerm * precioHuevo + pollosSobreviven * precioPollo;
+
       totalHuevosRotos += huevosRotos;
       totalHuevosPermanecen += huevosPerm;
       totalPollosSobreviven += pollosSobreviven;
+      gananciaTotal += gananciaDia;
 
-      gananciaTotal += huevosPerm * precioHuevo + pollosSobreviven * precioPollo;
+      registros.push({
+        dia,
+        huevosGenerados: huevosDia,
+        rotos: huevosRotos,
+        permanecen: huevosPerm,
+        pollos: pollosSobreviven,
+        ganancia: gananciaDia.toFixed(2),
+      });
     }
 
     const ingresoPromedio = gananciaTotal / numeroMaximoDias;
 
+    setTabla(registros);
     setResultados({
       totalHuevosRotos,
       totalHuevosPermanecen,
@@ -56,7 +67,6 @@ export default function HuevosPollos({ goBack }) {
     });
   }
 
-  // Generador Poisson(lambda) simple con Knuth
   function poissonRandom(lambda) {
     const L = Math.exp(-lambda);
     let k = 0;
@@ -71,13 +81,15 @@ export default function HuevosPollos({ goBack }) {
   const inputStyle = { width: 100, padding: "6px" };
 
   return (
-    <div style={{ padding: 20, background: "#111", color: "#eee", minHeight: "100vh" }}>
-      <h2>Simulación Huevos y Pollos</h2>
-      <p style={{ opacity: 0.85 }}>Prob. romper huevo=0.2, nacer pollo=0.3, sobrevivir=0.8.</p>
+    <div style={styles.container}>
+      <h2 style={styles.title}>🥚🐔 Simulación Huevos y Pollos</h2>
+      <p style={styles.description}>
+        Probabilidades: romper huevo=0.2, nacer pollo=0.3, sobrevivir=0.8.
+      </p>
 
-      <div style={{ display: "grid", gap: 10, marginBottom: 15 }}>
+      <div style={styles.form}>
         <label>
-          Número de días:&nbsp;
+          Número de días:
           <input
             type="number"
             value={numeroMaximoDias}
@@ -86,7 +98,7 @@ export default function HuevosPollos({ goBack }) {
           />
         </label>
         <label>
-          Precio huevo (Bs):&nbsp;
+          Precio huevo (Bs):
           <input
             type="number"
             value={precioHuevo}
@@ -95,7 +107,7 @@ export default function HuevosPollos({ goBack }) {
           />
         </label>
         <label>
-          Precio pollo (Bs):&nbsp;
+          Precio pollo (Bs):
           <input
             type="number"
             value={precioPollo}
@@ -105,14 +117,19 @@ export default function HuevosPollos({ goBack }) {
         </label>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-        <button onClick={simular} style={{ padding: "10px 15px" }}>Simular</button>
-        <button onClick={goBack} style={{ padding: "10px 15px" }}>⬅ Volver al menú</button>
+      <div style={styles.actions}>
+        <button onClick={simular} style={styles.btnPrimary}>
+          ▶ Simular
+        </button>
+        <button onClick={goBack} style={styles.btnSecondary}>
+          ⬅ Volver
+        </button>
       </div>
 
+      {/* 🔹 Resumen primero */}
       {resultados && (
-        <div style={{ marginTop: 16 }}>
-          <h3>Resultados</h3>
+        <div style={styles.resultCard}>
+          <h3 style={styles.subtitle}>📊 Resumen</h3>
           <p>Total huevos rotos: <b>{resultados.totalHuevosRotos}</b></p>
           <p>Total huevos permanecen: <b>{resultados.totalHuevosPermanecen}</b></p>
           <p>Total pollos que sobreviven: <b>{resultados.totalPollosSobreviven}</b></p>
@@ -120,6 +137,113 @@ export default function HuevosPollos({ goBack }) {
           <p>Ingreso promedio diario: <b>{resultados.ingresoPromedio.toFixed(2)} Bs</b></p>
         </div>
       )}
+
+      {/* 🔹 Detalle después */}
+      {tabla.length > 0 && (
+        <div style={styles.tableWrapper}>
+          <h3 style={styles.subtitle}>📑 Detalle por Día</h3>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th>Día</th>
+                <th>Huevos generados</th>
+                <th>Huevos rotos</th>
+                <th>Huevos permanecen</th>
+                <th>Pollos sobreviven</th>
+                <th>Ganancia Día (Bs)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tabla.map((row, i) => (
+                <tr key={i}>
+                  <td>{row.dia}</td>
+                  <td>{row.huevosGenerados}</td>
+                  <td>{row.rotos}</td>
+                  <td>{row.permanecen}</td>
+                  <td>{row.pollos}</td>
+                  <td>{row.ganancia}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
+
+const styles = {
+  container: {
+    padding: "40px",
+    background: "#111",
+    color: "#eee",
+    minHeight: "100vh",
+    textAlign: "center",
+  },
+  title: {
+    fontSize: "2.2rem",
+    marginBottom: "15px",
+  },
+  description: {
+    fontSize: "1.1rem",
+    marginBottom: "25px",
+    opacity: 0.9,
+  },
+  form: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "20px",
+    marginBottom: "20px",
+    flexWrap: "wrap",
+  },
+  actions: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "15px",
+    marginBottom: "20px",
+  },
+  btnPrimary: {
+    padding: "12px 20px",
+    fontSize: "1.1rem",
+    border: "none",
+    borderRadius: "10px",
+    background: "#4caf50",
+    color: "#fff",
+    cursor: "pointer",
+  },
+  btnSecondary: {
+    padding: "12px 20px",
+    fontSize: "1.1rem",
+    border: "none",
+    borderRadius: "10px",
+    background: "#f44336",
+    color: "#fff",
+    cursor: "pointer",
+  },
+  tableWrapper: {
+    marginTop: "20px",
+    overflowX: "auto",
+  },
+  table: {
+    width: "100%",
+    maxWidth: "850px",
+    margin: "0 auto",
+    borderCollapse: "collapse",
+    background: "#1c1c1c",
+  },
+  resultCard: {
+    marginTop: "20px",
+    padding: "20px",
+    background: "#222",
+    borderRadius: "10px",
+    maxWidth: "600px",
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
+  subtitle: {
+    fontSize: "1.4rem",
+    marginBottom: "10px",
+    color: "#87cefa",
+  },
+};
