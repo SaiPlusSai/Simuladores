@@ -1,25 +1,23 @@
 import { useState } from "react";
 
 function tirarDado() {
-  // entero en [1..6]
-  return Math.floor(Math.random() * 6) + 1;
+  return Math.floor(Math.random() * 6) + 1; // entero en [1..6]
 }
 
 export default function JuegoDados({ goBack }) {
   const [apuesta, setApuesta] = useState(2);
   const [premio, setPremio] = useState(5);
-  const [juegosTotales, setJuegosTotales] = useState(1500);
+  const [juegosTotales, setJuegosTotales] = useState(100);
 
   const [gananciaNeta, setGananciaNeta] = useState(null);
   const [juegosGanadosCasa, setJuegosGanadosCasa] = useState(null);
   const [porcentajeCasa, setPorcentajeCasa] = useState(null);
-  const [mostrarLog, setMostrarLog] = useState(false);
-  const [log, setLog] = useState([]);
+  const [tabla, setTabla] = useState([]);
 
   const simular = () => {
     let gNeta = 0;
     let gCasa = 0;
-    const eventos = [];
+    const registros = [];
 
     for (let cj = 0; cj < juegosTotales; cj++) {
       gNeta += apuesta;
@@ -29,88 +27,203 @@ export default function JuegoDados({ goBack }) {
       const suma = d1 + d2;
 
       if (suma === 7) {
-        // jugador gana (casa paga)
-        gNeta -= premio;
-        if (mostrarLog) eventos.push(`Juego ${cj + 1}: Jugador gana ( ${d1} + ${d2} = 7 )`);
+        gNeta -= premio; // jugador gana
+        registros.push({
+          juego: cj + 1,
+          d1,
+          d2,
+          suma,
+          ganador: "Jugador",
+        });
       } else {
         gCasa++;
-        if (mostrarLog) eventos.push(`Juego ${cj + 1}: Casa gana ( ${d1} + ${d2} = ${suma} )`);
+        registros.push({
+          juego: cj + 1,
+          d1,
+          d2,
+          suma,
+          ganador: "Casa",
+        });
       }
     }
 
     setGananciaNeta(gNeta);
     setJuegosGanadosCasa(gCasa);
-    setPorcentajeCasa(((gCasa / juegosTotales) * 100));
-    setLog(eventos);
+    setPorcentajeCasa((gCasa / juegosTotales) * 100);
+    setTabla(registros);
   };
 
   return (
-    <div style={{ padding: 20, background: "#111", color: "#eee", minHeight: "100vh" }}>
-      <h2>Juego de Dados — Casa vs Jugador</h2>
-      <p style={{ opacity: 0.85 }}>
-        Reglas: cada juego la casa cobra <b>apuesta</b>. Si la suma de los dados es <b>7</b>, la casa paga <b>premio</b>.
+    <div style={styles.container}>
+      <h2 style={styles.title}>🎲 Juego de Dados — Casa vs Jugador</h2>
+      <p style={styles.description}>
+        Reglas: cada juego la <b>casa cobra {apuesta} Bs</b>.  
+        Si la suma de los dados es <b>7</b>, la casa paga <b>{premio} Bs</b>.  
         En otro caso, gana la casa.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 220px))", gap: 12, margin: "16px 0" }}>
+      <div style={styles.form}>
         <label>
-          Apuesta:&nbsp;
+          Apuesta (Bs):
           <input
             type="number"
             value={apuesta}
             onChange={(e) => setApuesta(Number(e.target.value))}
-            style={{ width: 100, padding: "6px" }}
+            style={styles.input}
           />
         </label>
         <label>
-          Premio:&nbsp;
+          Premio (Bs):
           <input
             type="number"
             value={premio}
             onChange={(e) => setPremio(Number(e.target.value))}
-            style={{ width: 100, padding: "6px" }}
+            style={styles.input}
           />
         </label>
         <label>
-          Juegos:&nbsp;
+          N° de juegos:
           <input
             type="number"
             value={juegosTotales}
             onChange={(e) => setJuegosTotales(Number(e.target.value))}
-            style={{ width: 120, padding: "6px" }}
+            style={styles.input}
           />
         </label>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-        <button onClick={simular} style={{ padding: "10px 15px" }}>Simular</button>
-        <button onClick={goBack} style={{ padding: "10px 15px" }}>⬅ Volver al menú</button>
-        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input
-            type="checkbox"
-            checked={mostrarLog}
-            onChange={(e) => setMostrarLog(e.target.checked)}
-          />
-          Mostrar log
-        </label>
+      <div style={styles.actions}>
+        <button onClick={simular} style={styles.btnPrimary}>
+          ▶ Simular
+        </button>
+        <button onClick={goBack} style={styles.btnSecondary}>
+          ⬅ Volver
+        </button>
       </div>
 
       {gananciaNeta !== null && (
-        <div style={{ marginTop: 16 }}>
-          <h3>Resultados</h3>
-          <p>Ganancia neta de la casa: <b>{gananciaNeta}</b></p>
+        <div style={styles.resultCard}>
+          <h3 style={styles.subtitle}>📊 Resultados Globales</h3>
+          <p>Ganancia neta de la casa: <b>{gananciaNeta} Bs</b></p>
           <p>Veces que ganó la casa: <b>{juegosGanadosCasa}</b> de {juegosTotales}</p>
           <p>Porcentaje de victorias de la casa: <b>{porcentajeCasa.toFixed(2)}%</b></p>
         </div>
       )}
 
-      {mostrarLog && log.length > 0 && (
-        <div style={{ marginTop: 16, maxHeight: 300, overflow: "auto", border: "1px solid #333", padding: 10 }}>
-          {log.map((linea, i) => (
-            <div key={i} style={{ fontFamily: "monospace", fontSize: 13 }}>{linea}</div>
-          ))}
+      {tabla.length > 0 && (
+        <div style={styles.tableWrapper}>
+          <h3 style={styles.subtitle}>📑 Iteraciones</h3>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th>Juego</th>
+                <th>Dado 1</th>
+                <th>Dado 2</th>
+                <th>Suma</th>
+                <th>Ganador</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tabla.map((row, i) => (
+                <tr key={i}>
+                  <td>{row.juego}</td>
+                  <td>{row.d1}</td>
+                  <td>{row.d2}</td>
+                  <td>{row.suma}</td>
+                  <td>{row.ganador}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
   );
 }
+
+const styles = {
+  container: {
+    padding: "40px",
+    background: "#111",
+    color: "#eee",
+    minHeight: "100vh",
+    textAlign: "center",
+  },
+  title: {
+    fontSize: "2.2rem",
+    marginBottom: "15px",
+  },
+  description: {
+    fontSize: "1.1rem",
+    marginBottom: "25px",
+    opacity: 0.9,
+  },
+  form: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "20px",
+    marginBottom: "20px",
+    flexWrap: "wrap",
+  },
+  input: {
+    marginLeft: "8px",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #444",
+    background: "#222",
+    color: "#eee",
+    width: "120px",
+    fontSize: "1rem",
+    textAlign: "center",
+  },
+  actions: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "15px",
+    marginBottom: "20px",
+  },
+  btnPrimary: {
+    padding: "12px 20px",
+    fontSize: "1.1rem",
+    border: "none",
+    borderRadius: "10px",
+    background: "#4caf50",
+    color: "#fff",
+    cursor: "pointer",
+  },
+  btnSecondary: {
+    padding: "12px 20px",
+    fontSize: "1.1rem",
+    border: "none",
+    borderRadius: "10px",
+    background: "#f44336",
+    color: "#fff",
+    cursor: "pointer",
+  },
+  resultCard: {
+    marginTop: "20px",
+    padding: "20px",
+    background: "#222",
+    borderRadius: "10px",
+    maxWidth: "500px",
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
+  subtitle: {
+    fontSize: "1.4rem",
+    marginBottom: "10px",
+    color: "#87cefa",
+  },
+  tableWrapper: {
+    marginTop: "20px",
+    overflowX: "auto",
+  },
+  table: {
+    width: "100%",
+    maxWidth: "800px",
+    margin: "0 auto",
+    borderCollapse: "collapse",
+    background: "#1c1c1c",
+  },
+};
